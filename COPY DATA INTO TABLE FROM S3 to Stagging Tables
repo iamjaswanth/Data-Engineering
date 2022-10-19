@@ -1,0 +1,50 @@
+//
+create or replace database staging_Sales_superstor;
+// Create File Format
+create or replace file format my_csv_format
+  type = csv
+  record_delimiter = '\n'
+  field_delimiter = ','
+  skip_header = 1
+  null_if = ('NULL', 'null')
+  empty_field_as_null = true
+  FIELD_OPTIONALLY_ENCLOSED_BY = '0x22'  ;
+// Create Stage
+CREATE OR REPLACE stage MANAGE_DB.external_stages.csv_folder
+    URL = 's3://superstoresnow/'
+    STORAGE_INTEGRATION = s3_int
+    FILE_FORMAT = my_csv_format;    
+
+desc stage MANAGE_DB.external_stages.csv_folder;
+list @MANAGE_DB.external_stages.csv_folder;
+// Query Meta data from staging files
+select metadata$filename, metadata$file_row_number, t.$1, t.$2,t.$3, t.$4,t.$5, t.$6,t.$7, t.$8 from @MANAGE_DB.external_stages.csv_folder t;
+
+// Setting up table
+CREATE or replace TABLE Superstore (
+    RowID DECIMAL , 
+    OrderID VARCHAR , 
+    OrderDate DATE , 
+    ShipDate DATE , 
+    ShipMode VARCHAR, 
+    CustomerID VARCHAR, 
+    CustomerName VARCHAR, 
+    Segment VARCHAR, 
+    CountryRegion VARCHAR, 
+    City VARCHAR, 
+    State VARCHAR, 
+    PostalCode VARCHAR, 
+    Region VARCHAR, 
+    ProductID VARCHAR, 
+    Category VARCHAR, 
+    SubCategory VARCHAR, 
+    ProductName VARCHAR, 
+    Sales VARCHAR, 
+    Quantity VARCHAR, 
+    Discount VARCHAR, 
+    Profit VARCHAR
+);
+
+select sum(SALES) from manage_db.public.Superstore;
+copy into manage_db.public.superstore from  @MANAGE_DB.external_stages.csv_folder;
+
